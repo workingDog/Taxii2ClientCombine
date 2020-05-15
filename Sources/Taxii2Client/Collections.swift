@@ -35,7 +35,7 @@ class Collections {
         return self.get().map { $0?.collections?[index] }.eraseToAnyPublisher()
     }
     
-    func getRaw() -> AnyPublisher<Data, APIError> {
+    func getRaw() -> AnyPublisher<Data?, APIError> {
         return conn.fetchRaw(path: thePath)
     }
     

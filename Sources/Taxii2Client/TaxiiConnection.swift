@@ -100,7 +100,7 @@ class TaxiiConnection: TaxiiConnect {
      *                        value=1 for request media type for taxii resources
      * @return AnyPublisher<Data, APIError>
      */
-    func fetchRaw(path: String, headerType: Int = 0) -> AnyPublisher<Data, APIError> {
+    func fetchRaw(path: String, headerType: Int = 0) -> AnyPublisher<Data?, APIError> {
         
         let mediaType = headerType == 1 ? mediaStix : mediaTaxii
         let url = URL(string: path)!
@@ -111,42 +111,7 @@ class TaxiiConnection: TaxiiConnect {
         request.addValue(mediaType, forHTTPHeaderField: "Accept")
         request.addValue(mediaType, forHTTPHeaderField: "Content-Type")
         
-        return self.sessionManager.dataTaskPublisher(for: request)
-            .tryMap { data, response in
-                guard let httpResponse = response as? HTTPURLResponse else {
-                    throw APIError.unknown
-                }
-                if (httpResponse.statusCode == 401) {
-                    throw APIError.apiError(reason: "Unauthorized");
-                }
-                if (httpResponse.statusCode == 403) {
-                    throw APIError.apiError(reason: "Resource forbidden");
-                }
-                if (httpResponse.statusCode == 404) {
-                    throw APIError.apiError(reason: "Resource not found");
-                }
-                if (405..<500 ~= httpResponse.statusCode) {
-                    throw APIError.apiError(reason: "client error");
-                }
-                if (500..<600 ~= httpResponse.statusCode) {
-                    throw APIError.apiError(reason: "server error");
-                }
-                return data
-        }
-        .mapError { error in
-            // return the APIError type error
-            if let error = error as? APIError {
-                return error
-            }
-            // a URLError, convert it to APIError type error
-            if let urlerror = error as? URLError {
-                return APIError.networkError(from: urlerror)
-            }
-            // unknown error condition
-            return APIError.unknown
-        }
-        .receive(on: DispatchQueue.main)
-        .eraseToAnyPublisher()
+        return self.doDataTaskPublish(request: request)
     }
    
     private func doDataTaskPublish<T: Decodable>(request: URLRequest) -> AnyPublisher<T?, APIError> {

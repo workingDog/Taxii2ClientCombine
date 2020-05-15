@@ -74,7 +74,7 @@ class Collection {
     }
 
     // returns the raw json data
-    func getRaw() -> AnyPublisher<Data, APIError> {
+    func getRaw() -> AnyPublisher<Data?, APIError> {
         return conn.fetchRaw(path: thePath, headerType: 1)
     }
  
