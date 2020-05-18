@@ -11,6 +11,38 @@ import GenericJSON
 
 // TAXII-2.1 protocol
 
+
+/*
+* helper to make a UInt64 when reading various json representation, especialy string
+*/
+struct TaxiiInt: Codable {
+    let value: UInt64
+
+    init(_ value: UInt64) {
+        self.value = value
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        if let uint = try? container.decode(UInt64.self) {
+            value = uint
+        } else if let int = try? container.decode(Int.self) {
+            value = UInt64(int)
+        } else if let double = try? container.decode(Double.self) {
+            value = UInt64(double)
+        } else if let str = try? container.decode(String.self) {
+            value = UInt64(str) ?? 0
+        } else {
+            throw DecodingError.typeMismatch(UInt64.self, .init(codingPath: decoder.codingPath, debugDescription: ""))
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(value)
+    }
+}
+
 /*
  * The discovery resource contains information about a TAXII Server,
  * such as a human-readable title, description, and contact information,
@@ -26,15 +58,7 @@ struct TaxiiDiscovery: Identifiable, Codable, Equatable, Comparable {
     let contact: String?
     let default_api: String?
     let api_roots: [String]?
-    
-    init(title: String, description: String, contact: String, default_api: String, api_roots: [String]?) {
-        self.title = title
-        self.description = description
-        self.contact = contact
-        self.default_api = default_api
-        self.api_roots = api_roots
-    }
-    
+     
     init() {
         self.title = ""
         self.description = ""
@@ -66,9 +90,9 @@ struct TaxiiApiRoot: Identifiable, Codable, Equatable, Comparable {
     let id = UUID().uuidString
     let title: String
     let versions: [String]
-    let max_content_length: String // for taxii-2.0   --> for taxii-2.1 use UInt64
+    let max_content_length: TaxiiInt   // should be UInt64, but sometimes it is a String
     let description: String?
-    
+  
     public static func == (lhs: TaxiiApiRoot, rhs: TaxiiApiRoot) -> Bool {
         lhs.id == rhs.id
     }
@@ -76,7 +100,6 @@ struct TaxiiApiRoot: Identifiable, Codable, Equatable, Comparable {
     static func < (lhs: TaxiiApiRoot, rhs: TaxiiApiRoot) -> Bool {
         lhs.id < rhs.id
     }
-    
 }
 
 /* Taxii-2.0 only
@@ -121,10 +144,10 @@ struct TaxiiStatus: Identifiable, Codable, Equatable, Comparable {
     
     let id: String
     let status: String
-    let total_count: UInt64
-    let success_count: UInt64
-    let failure_count: UInt64
-    let pending_count: UInt64
+    let total_count: TaxiiInt
+    let success_count: TaxiiInt
+    let failure_count: TaxiiInt
+    let pending_count: TaxiiInt
     let request_timestamp: String?
     let failures: [TaxiiStatusDetails]?
     let pendings: [TaxiiStatusDetails]?
@@ -369,5 +392,3 @@ struct TaxiiEnvelope: Identifiable, Codable, Equatable, Comparable {
         lhs.id < rhs.id
     }
 }
-
-
